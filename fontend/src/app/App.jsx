@@ -14,6 +14,13 @@ function App() {
 
   const handleMount = (editor) => {
     editorRef.current = editor
+
+    
+     new MonacoBinding(
+      yText,
+      editorRef.current.getModel(),
+      new Set([editorRef.current]),
+    )
   }
 
   const [username, setUsername] = useState(() => {
@@ -24,49 +31,44 @@ function App() {
     e.preventDefault();
     setUsername(e.target.username.value);
     window.history.pushState({}, "", "?username=" + e.target.username.value)
+
+
   }
 
   // show all user 
   const [user, setUser] = useState([])
 
   useEffect(() => {
-    if (username && editorRef.current) {
+    if (username) {
       const provider = new SocketIOProvider("http://localhost:3000", "monaco", ydoc, {
         autoConnect: true
       })
 
-      provider.awareness.setLocalStateField("user",{username})
-
+      provider.awareness.setLocalStateField("user", { username })
 
       const states = Array.from(provider.awareness.getStates().values())
-      setUser(states.filter(user => user && username).map(state=> state.user))
+      setUser(states.filter(state => state.user && state.user.username).map(state => state.user))
 
 
-      provider.awareness.on("change", ()=>{ 
+      provider.awareness.on("change", () => {
         const states = Array.from(provider.awareness.getStates().values())
-        setUser(states.filter(user => user && user.username).map(state => state.user))
+        setUser(states.filter(state => state.user && state.user.username).map(state => state.user))
       })
 
-      function handleBeforeUnload (){
+      function handleBeforeUnload() {
         provider.awareness.setLocalStateField("user", null)
       }
 
       window.addEventListener("beforeUnload", handleBeforeUnload)
 
-      const monacoBinding = new MonacoBinding(
-        yText,
-        editorRef.current.getModel(),
-        new Set([editorRef.current]),
-        provider.awareness
-      )
 
-      return ()=>{
-        monacoBinding.destroy()
+      // provider.awareness
+      return () => {
         provider.disconnect()
         window.addEventListener("beforeunload", handleBeforeUnload)
       }
     }
-  }, [editorRef.current, username])
+  }, [username])
 
   if (!username) {
     return (
@@ -87,14 +89,14 @@ function App() {
       <main className='h-screen w-full bg-gray-900 flex gap-3 p-2'>
         <aside className='h-full w-1/5 bg-neutral-800 rounded-lg'>
 
-        <h2 className='text-2xl font-bold p-4 border-b border-gray-300'>user</h2>
-        <ul className='p-4'>
-          {user.map((user, index)=>(
-            <li key={index} className='p-2 bg-gray-800 text-white mb-2 rounded-sm'>
-              {user.username}
-            </li>
-          ))}
-        </ul>
+          <h2 className='text-2xl font-bold p-4 border-b border-gray-300'>user</h2>
+          <ul className='p-4'>
+            {user.map((user, index) => (
+              <li key={index} className='p-2 bg-gray-800 text-white mb-2 rounded-sm'>
+                {user.username}
+              </li>
+            ))}
+          </ul>
         </aside>
 
         <section className='w-3/3 bg-neutral-800 rounded-lg overflow-hidden'>
